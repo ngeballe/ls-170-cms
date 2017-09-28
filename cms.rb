@@ -1,23 +1,80 @@
 require "sinatra"
 require "sinatra/reloader"
 require "tilt/erubis"
+require "redcarpet"
 
-before do
-  @root = File.expand_path("..", __FILE__)
+configure do
+  enable :sessions
+  set :session_secret, 'captainmoonlight'
 end
 
+def data_path
+  if ENV["RACK_ENV"] == "test"
+    File.expand_path("../test/data", __FILE__)
+  else
+    File.expand_path("../data", __FILE__)    
+  end
+end
+
+def render_markdown(text)
+  markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
+  markdown.render(text)
+end
+
+def create_document(name, content = "")
+  File.open(File.join(data_path, name), "w") do |file|
+    file.write(content)
+  end
+end
+
+def load_file_content(path)
+  content = File.read(path)
+  case File.extname(path)
+  when '.txt'
+    headers["Content-Type"] = "text/plain"
+    content
+  when '.md'
+    render_markdown(content)
+  end
+end
+
+# Display index page with list of files
 get "/" do
-  @files = Dir.glob(@root + "/data/*").map do |path|
+  pattern = File.join(data_path, "*")
+  @files = Dir.glob(pattern).map do |path|
     File.basename(path)
   end
-
   erb :index
 end
 
-get "/:file" do
-  file_path = "#{@root}/data/#{params[:file]}"
+# Display file
+get "/:filename" do
+  file_path = File.join(data_path, params[:filename])
 
-  headers["Content-Type"] = "text/plain"
+  if File.exist?(file_path)
+    load_file_content(file_path)
+  else
+    session[:error] = "#{params[:filename]} does not exist."
+    redirect "/"
+  end
+end
 
-  File.read(file_path)
+# Edit file content
+get '/:filename/edit' do
+  file_path = File.join(data_path, params[:filename])
+
+  @filename = params[:filename]
+  @content = File.read(file_path)
+
+  erb :edit
+end
+
+# Update file content
+post "/:filename" do
+  file_path = File.join(data_path, params[:filename])
+
+  File.write(file_path, params[:content])
+
+  session[:success] = "#{params[:filename]} has been updated."
+  redirect "/"
 end
