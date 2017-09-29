@@ -1,11 +1,26 @@
-<p><%= session.delete(:error) %></p>
-<p><%= session.delete(:success) %></p>
-
 <ul>
   <% @files.each do |file| %>
     <li>
       <a href="/<%= file %>"><%= file %></a>
-      <a href="/<%= file %>/edit">Edit</a>
+      <a href="/<%= file %>/edit">edit</a>
+      <form class="inline" action="/<%= file %>/delete" method="post">
+        <button type="submit">delete</button>
+      </form>
     </li>
   <% end %>
 </ul>
+
+<p><a href="/new">New Document</a></p>
+
+<% if signed_in_username %>
+  <form action="/users/signout" method="post">
+    <p class="signin-status">
+      Signed in as <%= signed_in_username %>.
+      <button type="submit">Sign Out</button>
+    </p>
+  </form>
+<% else %>
+  <p class="signin-status">
+    <a href="/users/signin">Sign In</a>
+  </p>
+<% end %>

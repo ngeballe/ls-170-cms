@@ -1,0 +1,18 @@
+body {
+  padding: 1em;
+  font-family: sans-serif;
+}
+
+p.message {
+  padding: 10px;
+  background-color: #FFFF99;
+}
+
+form.inline {
+  display: inline;
+}
+
+.signin-status {
+  font-style: italic;
+  font-size: 0.9em;
+}
