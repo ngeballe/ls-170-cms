@@ -2,10 +2,12 @@
   <% @files.each do |file| %>
     <li>
       <a href="/<%= file %>"><%= file %></a>
-      <a href="/<%= file %>/edit">edit</a>
-      <form class="inline" action="/<%= file %>/delete" method="post">
-        <button type="submit">delete</button>
-      </form>
+      <% if user_signed_in? %>
+        <a href="/<%= file %>/edit">edit</a>
+        <form class="inline" action="/<%= file %>/delete" method="post">
+          <button type="submit">delete</button>
+        </form>
+      <% end %>
     </li>
   <% end %>
 </ul>
@@ -25,6 +27,3 @@
   </p>
 <% end %>
 
-<% if admin_signed_in? %>
-  <a href="/users/edit">Edit User Information</a>
-<% end %>

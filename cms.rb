@@ -78,20 +78,9 @@ def user_signed_in?
   session.key?(:username)
 end
 
-def admin_signed_in?
-  user_signed_in? && signed_in_username == 'admin'
-end
-
 def require_signed_in_user
   unless user_signed_in?
     session[:message] = "You must be signed in to do that."
-    redirect "/"
-  end
-end
-
-def require_signed_in_admin
-  unless admin_signed_in?
-    session[:message] = "You must be signed in as an admin to do that."
     redirect "/"
   end
 end

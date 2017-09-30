@@ -33,7 +33,6 @@ class CMSTest < Minitest::Test
   end
 
   def redirect_path
-    # this is probably not the best way to do this. Has side effect of going to the path
     get last_response["Location"]
     last_request.env["PATH_INFO"]
   end
@@ -81,10 +80,18 @@ class CMSTest < Minitest::Test
     create_document "james.txt"
     create_document "sasha.txt"
 
-    get "/"
+    get "/", {}, admin_session
 
     assert_includes last_response.body, "<a href=\"/james.txt/edit\">edit</a>"
     assert_includes last_response.body, "<a href=\"/sasha.txt/edit\">edit</a>"
+  end
+
+  def test_hide_edit_links_for_signed_out_users
+    create_document "james.txt"
+
+    get "/"
+
+    refute_includes last_response.body, "<a href=\"/james.txt/edit\">edit</a>"
   end
 
   def test_editing_document
@@ -189,6 +196,22 @@ class CMSTest < Minitest::Test
     assert_includes last_response.body, "Invalid file type"
   end
 
+  def test_index_page_has_delete_buttons
+    create_document "bob.txt"
+
+    get "/", {}, admin_session
+
+    assert_match %r{<button.+delete</button>}, last_response.body
+  end
+
+  def test_hide_delete_buttons_for_signed_out_users
+    create_document "bob.txt"
+
+    get "/"
+
+    refute_match %r{<button.+delete</button>}, last_response.body
+  end
+
   def test_delete_document
     create_document "temp.txt"
     
@@ -263,10 +286,4 @@ class CMSTest < Minitest::Test
 
     assert_includes last_response.body, "Sign In"
   end
-
-  # def test_hash_password
-  #   post "/users/signin", username: "admin", password: "secret"
-
-    
-  # end
 end
