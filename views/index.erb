@@ -12,7 +12,7 @@
 
 <p><a href="/new">New Document</a></p>
 
-<% if signed_in_username %>
+<% if user_signed_in? %>
   <form action="/users/signout" method="post">
     <p class="signin-status">
       Signed in as <%= signed_in_username %>.
@@ -23,4 +23,8 @@
   <p class="signin-status">
     <a href="/users/signin">Sign In</a>
   </p>
+<% end %>
+
+<% if admin_signed_in? %>
+  <a href="/users/edit">Edit User Information</a>
 <% end %>

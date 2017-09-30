@@ -2,6 +2,8 @@ require "sinatra"
 require "sinatra/reloader"
 require "tilt/erubis"
 require "redcarpet"
+require "yaml"
+require "bcrypt"
 
 configure do
   enable :sessions
@@ -14,7 +16,7 @@ def data_path
   if ENV["RACK_ENV"] == "test"
     File.expand_path("../test/data", __FILE__)
   else
-    File.expand_path("../data", __FILE__)    
+    File.expand_path("../data", __FILE__)
   end
 end
 
@@ -44,8 +46,28 @@ def invalid_extension?(filename)
   !VALID_FILE_EXTENSIONS.include? File.extname(filename)
 end
 
-def valid_user_credentials?(params)
-  params[:username] == 'admin' && params[:password] == 'secret'
+def load_user_credentials
+  credentials_path = if ENV["RACK_ENV"] == "test"
+    File.expand_path("../test/users.yml", __FILE__)
+  else
+    File.expand_path("../users.yml", __FILE__)
+  end
+
+  YAML.load_file(credentials_path)
+end
+
+def valid_credentials?(username, password)
+  credentials = load_user_credentials
+
+  if credentials.key?(username)
+    bcrypt_password = BCrypt::Password.new(credentials[username])
+    bcrypt_password == password
+  else
+    false
+  end
+
+  credentials.key?(username) &&
+    BCrypt::Password.new(credentials[username]) == password
 end
 
 def signed_in_username
@@ -56,9 +78,20 @@ def user_signed_in?
   session.key?(:username)
 end
 
+def admin_signed_in?
+  user_signed_in? && signed_in_username == 'admin'
+end
+
 def require_signed_in_user
   unless user_signed_in?
     session[:message] = "You must be signed in to do that."
+    redirect "/"
+  end
+end
+
+def require_signed_in_admin
+  unless admin_signed_in?
+    session[:message] = "You must be signed in as an admin to do that."
     redirect "/"
   end
 end
@@ -107,8 +140,10 @@ end
 
 # Sign in
 post "/users/signin" do
-  if valid_user_credentials?(params)
-    session[:username] = params[:username]
+  username = params[:username]
+
+  if valid_credentials?(username, params[:password])
+    session[:username] = username
     session[:message] = "Welcome!"
     redirect '/'
   else

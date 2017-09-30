@@ -263,4 +263,10 @@ class CMSTest < Minitest::Test
 
     assert_includes last_response.body, "Sign In"
   end
+
+  # def test_hash_password
+  #   post "/users/signin", username: "admin", password: "secret"
+
+    
+  # end
 end
