@@ -140,9 +140,15 @@ class CMSTest < Minitest::Test
   end
 
   def test_index_page_has_new_document_link
-    get "/"
+    get "/", {}, admin_session
 
     assert_includes last_response.body, %q(<a href="/new">New Document</a>)
+  end
+
+  def test_hide_new_document_link_if_signed_out
+    get "/"
+
+    refute_includes last_response.body, %q(<a href="/new">New Document</a>)
   end
 
   def test_view_new_document_form

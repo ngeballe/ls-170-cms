@@ -12,9 +12,8 @@
   <% end %>
 </ul>
 
-<p><a href="/new">New Document</a></p>
-
 <% if user_signed_in? %>
+  <p><a href="/new">New Document</a></p>
   <form action="/users/signout" method="post">
     <p class="signin-status">
       Signed in as <%= signed_in_username %>.
