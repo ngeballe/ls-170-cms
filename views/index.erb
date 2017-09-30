@@ -4,6 +4,9 @@
       <a href="/<%= file %>"><%= file %></a>
       <% if user_signed_in? %>
         <a href="/<%= file %>/edit">edit</a>
+        <form class="inline" action="/<%= file %>/duplicate" method="post">
+          <button type="submit">duplicate</button>
+        </form>
         <form class="inline" action="/<%= file %>/delete" method="post">
           <button type="submit">delete</button>
         </form>

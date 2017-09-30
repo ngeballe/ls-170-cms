@@ -12,6 +12,9 @@ end
 
 VALID_FILE_EXTENSIONS = %w[.txt .md]
 
+# helpers do
+# end
+
 def data_path
   if ENV["RACK_ENV"] == "test"
     File.expand_path("../test/data", __FILE__)
@@ -39,6 +42,13 @@ def load_file_content(path)
     content
   when '.md'
     erb render_markdown(content)
+  end
+end
+
+def load_filenames
+  pattern = File.join(data_path, "*")
+  Dir.glob(pattern).map do |path|
+    File.basename(path)
   end
 end
 
@@ -85,12 +95,58 @@ def require_signed_in_user
   end
 end
 
+def copy_number(filename)
+  extname = File.extname(filename)
+  return 0 unless filename =~ /copy( \d+)?#{extname}$/
+  
+  $1.nil? ? 1 : $1.to_i
+end
+
+def filename_stem(filename)
+  # what's before 'copy x' in the name
+  extname = File.extname(filename)
+  filename.sub(/( copy( \d)*)?#{extname}/, '')
+end
+
+def next_integer(integers)
+  # find missing integer in a series. If none are missing, take the max + 1
+
+  raise ArgumentError unless integers.instance_of?(Array) &&
+    integers.all? { |number| number.instance_of?(Integer) }
+
+  integers.sort!
+  integers_in_range = [*integers.min..integers.max]
+  if integers_in_range == integers
+    integers.max + 1
+  else
+    (integers_in_range - integers).first
+  end
+end
+
+def next_copy_name(files, filename_being_copied)
+  # extname = File.extname(filename_being_copied)
+  filename_being_copied_stem = filename_stem(filename_being_copied)
+
+  existing_copies = files.select do |file|
+    filename_stem(file) == filename_being_copied_stem
+  end
+
+  existing_copy_numbers = existing_copies.map { |filename| copy_number(filename) }
+
+  next_copy_number = next_integer(existing_copy_numbers)
+
+  extname = File.extname(filename_being_copied)
+  if next_copy_number == 1
+    "#{filename_being_copied_stem} copy#{extname}"
+  else
+    "#{filename_being_copied_stem} copy #{next_copy_number}#{extname}"
+  end
+end
+
 # Display index page with list of files
 get "/" do
-  pattern = File.join(data_path, "*")
-  @files = Dir.glob(pattern).map do |path|
-    File.basename(path)
-  end
+  @files = load_filenames
+
   erb :index
 end
 
@@ -197,3 +253,20 @@ post "/:filename/delete" do
   redirect "/"
 end
 
+# Duplicate a file
+post "/:filename/duplicate" do
+  require_signed_in_user
+
+  filename = params[:filename]
+  files = load_filenames
+
+  duplicate_name = next_copy_name(files, filename)
+  
+  file_path = File.join(data_path, filename)
+  content = File.read(file_path)
+
+  create_document(duplicate_name, content)
+
+  session[:message] = "The file \"#{filename}\" has been duplicated as \"#{duplicate_name}\"."
+  redirect "/"
+end

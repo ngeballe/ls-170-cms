@@ -279,7 +279,7 @@ class CMSTest < Minitest::Test
 
   def test_signing_out
     # sign in
-    get "/", {}, { "rack.session" => { username: "admin" } }
+    get "/", {}, admin_session
     assert_includes last_response.body, "Signed in as admin"
 
     post "/users/signout"
@@ -292,4 +292,56 @@ class CMSTest < Minitest::Test
 
     assert_includes last_response.body, "Sign In"
   end
+
+  def test_duplicate_file_with_duplicate_button
+    create_document "jen.txt", "Dear Jen,"
+
+    get "/", {}, admin_session
+
+    # show duplicate buttons
+    assert_match %r{<button.+duplicate</button>}, last_response.body
+
+    # clicking on button duplicates file with name "jen copy.txt"
+    post "/jen.txt/duplicate"
+    assert_equal 302, last_response.status
+    assert_equal "The file \"jen.txt\" has been duplicated as \"jen copy.txt\".", session[:message]
+
+    get "/"
+    assert_includes last_response.body, %q(href="/jen copy.txt")
+
+    get "/jen%20copy.txt"
+    assert_equal 200, last_response.status
+    assert_equal last_response.body, "Dear Jen,"
+
+    # duplicating again makes "jen copy 2.txt"
+    post "/jen.txt/duplicate"
+
+    assert_equal 302, last_response.status
+    assert_equal "The file \"jen.txt\" has been duplicated as \"jen copy 2.txt\".", session[:message]
+
+    get "/"
+    assert_includes last_response.body, %q(href="/jen copy 2.txt")
+
+    get "/jen%20copy%202.txt"
+    assert_equal 200, last_response.status
+    assert_equal last_response.body, "Dear Jen,"
+  end
+
+  def test_cannot_duplicate_file_unless_signed_in
+    create_document "jen.txt", "Dear Jen,"
+
+    get "/"
+
+    # no button to duplicate
+    refute_match %r{<button.+duplicate</button>}, last_response.body
+
+    # don't let signe-out users duplicate things
+    post "/jen.txt/duplicate"
+
+    assert_equal 302, last_response.status
+    assert_equal "You must be signed in to do that.", session[:message]
+
+    assert_equal "/", redirect_path
+  end
 end
+
